@@ -28,8 +28,8 @@ typedef struct {
 Graph createGraph();
 void addVertex(Graph g,  char *station_name, char *bus_list);
 char *getVertex(Graph graph, char *station_name);
-void addEdge(Graph g, char *station1, char *station2, double distance);
 double getEdgeValue(Graph graph, char *station1, char *station2);
+void addEdge(Graph g, char *station1, char *station2, double distance);
 int indegree(Graph graph, int v, int* output);
 int outdegree(Graph graph, int v, int* output);
 void dropGraph(Graph graph);
@@ -86,20 +86,19 @@ char** stringSplit(char* str, const char delimiter) {
 
 
 int main() {
-    // FILE *bus_data = fopen("bus_test.txt", "r");
     Graph g = createGraph();
 
     g = dataToGraph("bus_full.txt");
-    char *array1 = "1 2 2";
-    addVertex(g, "1", array1);
+    // char *array1 = "1 2 2";
+    // addVertex(g, "1", array1);
 
-    // updateVertex(g, "1", "3");
-    char * result = getVertex(g, "1");
+    char * result = getVertex(g, "Giai Phong");
     if (result) {
         printf("%s\n", result);
     }
+    double distance = getEdgeValue(g, "Kim Dong", "Giai Phong");
+    printf("%f\n", distance);
     return 0;
-
 }
 
 
@@ -134,12 +133,24 @@ Graph dataToGraph(char *filename) {
 
         if (bus_stations) {
             int i;
-            for (i=0; *(bus_stations+i); i++) {
-                trim(*(bus_stations + i)); 
+            for (i=0; *(bus_stations+i+1); i++) {
+                trim(*(bus_stations + i));
+                trim(*(bus_stations + i+1)); 
+                
                 char *station=0;
                 station = malloc(100);
                 strcpy(station, *(bus_stations + i));
-                addVertex(g, station, bus_name);
+                
+                char *next_station=0;
+                next_station = malloc(100);
+                strcpy(next_station, *(bus_stations + i+1));
+                
+                if (!getVertex(g, station)) {
+                    addVertex(g, station, bus_name);
+                } else {
+                    updateVertex(g, station, bus_name);
+                }
+                addEdge(g, station, next_station, 1);
                 free(*(bus_stations+i));
             }
             free(bus_stations);
@@ -156,9 +167,47 @@ void addVertex(Graph g,  char *station_name, char *bus_list) {
     }
 }
 
-void addEdge(Graph g, char *station1, char *station2, double distance) {
 
+double getEdgeValue(Graph g, char *station1, char *station2) {
+    JRB node, tree;
+    node = jrb_find_str(g.edges, station1);
+    if (node == NULL) {
+        return INFINITIVE_VALUE;
+    }
+    tree = (JRB) jval_v(node->val);
+    node = jrb_find_str(tree, station2);
+    if (!node) {
+        return INFINITIVE_VALUE;
+    } else {
+        return jval_d(node->val);
+    }
+} 
+
+void addEdge(Graph g, char *station1, char *station2, double distance) {
+    JRB node, tree;
+    if (getEdgeValue(g, station1, station2) == INFINITIVE_VALUE) {
+        node = jrb_find_str(g.edges, station1);
+        if (node == NULL) {
+            tree = make_jrb();
+            jrb_insert_str(g.edges, station1, new_jval_v(tree));
+        } else {
+            tree = (JRB) jval_v(node->val);
+        }
+        jrb_insert_str(tree, station2, new_jval_d(distance));
+    }
+
+    if (getEdgeValue(g, station2, station1) == INFINITIVE_VALUE) {
+        node = jrb_find_str(g.edges, station1);
+        if (node == NULL) {
+            tree = make_jrb();
+            jrb_insert_str(g.edges, station2, new_jval_v(tree));
+        } else {
+            tree = (JRB) jval_v(node->val);
+        }
+        jrb_insert_str(tree, station1, new_jval_d(distance));
+    }
 }
+
 
 char *getVertex(Graph g, char *station_name) {
     JRB node = jrb_find_str(g.vertices, station_name);
@@ -186,7 +235,6 @@ int updateVertex(Graph g, char *station_name, char new_bus[10]) {
     }
     return 0;
 }
-
 
 void trim(char * str) {
     int index, i;
