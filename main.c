@@ -331,14 +331,11 @@ int updateVertex(Graph g, char *station_name, char new_bus[10]) {
 void trim(char * str) {
     int index, i;
     index = 0;
-    while(str[index] == ' ' || str[index] == '\t' || str[index] == '\n')
-    {
+    while(str[index] == ' ' || str[index] == '\t' || str[index] == '\n') {
         index++;
     }
-
     i = 0;
-    while(str[i + index] != '\0')
-    {
+    while(str[i + index] != '\0') {
         str[i] = str[i + index];
         i++;
     }
@@ -346,10 +343,8 @@ void trim(char * str) {
 
     i = 0;
     index = -1;
-    while(str[i] != '\0')
-    {
-        if(str[i] != ' ' && str[i] != '\t' && str[i] != '\n')
-        {
+    while(str[i] != '\0') {
+        if(str[i] != ' ' && str[i] != '\t' && str[i] != '\n') {
             index = i;
         }
 
@@ -364,37 +359,59 @@ int endsWith(char *s1, char *s2) {
     return strcmp(s1+strlen(s1) - strlen(s2), s2) == 0;
 }
 
-// double shortestPath(Graph g, int s, int t, int *path, int *length) {
-//     double distance[1000], min, w, total;
-//     int previous[1000], temp[1000];
-//     int n, output[100], i, u, v, start;
-//     Dllist ptr, queue, node;
-
-//     for (i=0; i<1009; i++) {
-//         distance[i] = INFINITIVE_VALUE;
-//     }
-//     distance[s] = 0;
-//     previous[s] = 0;
-
-//     queue = new_dllist();
-//     dll_append(queue, new_jval_i(s));
+double shortestPath(Graph g, char *start_station, char *end_station, int *path, int *length) {
+    int s = getMapping(g, start_station);
+    int t = getMapping(g, end_station);
+    double distance[1000];
+    int previous[1000], u, visit[1000];
     
-//     while (!dll_empty(queue)) {
-//         min = INFINITIVE_VALUE;
-//         dll_traverse(ptr, queue) {
-//             u = jval_i(ptr->val);
-//             if (min > distance[u]) {
-//                 min = distance[u];
-//                 node = ptr;
-//             }
-//         }
-//         dll_delete_node(node);
+    for (int i=0; i<1000; i++){
+        distance[i] = INFINITIVE_VALUE;
+        visit[i] = 0;
+        previous[i] = 0;
+    }
+    distance[s] = 0;
+    previous[s] = s;
+    visit[s] = 1;
+    
+    Dllist ptr, queue, node;
+    queue = new_dllist();
+    dll_append(queue, new_jval_i(s));
+    
+    // Duyet Queue
+    while (!dll_empty(queue)){
+        node = dll_first(queue);
+        int u = jval_i(node->val);
+        dll_delete_node(node);
+        int output[100];
+        int number = outdegree(graph,u,output);
+        for (int i =0; i<number; i++) {
+            if (visit[output[i]]==0) {
+                visit[output[i]] = 1;
+                dll_append(queue,new_jval_i(output[i]));
+            }
+            if ((getEdgeValue(graph,u,output[i])+distance[u])<distance[output
+                                                                       [i]]) {
+                distance[output[i]]= getEdgeValue(graph,u,output[i])+distance[u];
+                previous[output[i]] = u;
+                
+            }
+             
+          
+        }
+    }
+     path[0] = t;
+    int length1 = 1;
+    int cur = t;
+    while (cur != s){
+        path[length1] = previous[cur];
+        length1 = length1+1;
+        cur = previous[cur];
+    }
+    
 
-//         if (u==t) break;
-        
-//     }
-
-// }
+    return distance[t];
+}
 
 
 int adjacent(Graph graph, int v1, int v2)
@@ -408,82 +425,4 @@ int adjacent(Graph graph, int v1, int v2)
        return 0;
     else
        return 1;       
-}
-
-
-double shortestPath(Graph G,int s,int t,int path[10000],int *length)
-{
-    double total,min,w,x,distance[10000];
-    int dem=0,u,v,ck,n,out[100],temp[10000],previous[10000],visted[10000];
-    for(int i=0;i<10000;i++)
-    {
-        temp[i] =-1;
-        out[i] = -1;
-        previous[i] =-1;
-        distance[i] =INFINITIVE_VALUE;
-        visted[10000] =0;
-    }
-    distance[s] = 0;
-    previous[s] =-11;
-    Dllist Q,node,ptr;
-    Q=new_dllist();
-    dll_append(Q,new_jval_i(s));
-    while(!dll_empty(Q))
-    {
-        min =INFINITIVE_VALUE;
-        dll_traverse(ptr,Q)
-        {
-            v=jval_i(ptr->val);
-            if(min>distance[v])
-            {
-                min=distance[v];
-                // printf("%f\n",min);
-                node=ptr;
-            }
-        }
-        v=jval_i(node->val);
-     //   printf("%d\n",v);
-        dll_delete_node(node);
-        visted[v]=1; 
-        if(v==t)
-        {
-            // printf("%d\n",v);
-          break;
-        }
-        n =getAdjacentVertices(G,v,out);
-        for(int i=0;i<n;i++)
-        {
-            u=out[i];
-            w= adjacent(G,v,u);
-            if(distance[u]>distance[v]+w)
-            {
-                distance[u]=distance[v]+w;
-                previous[u]=v;
-            }
-            if(visted[u] != 1)
-            {
-              dll_append(Q,new_jval_i(u));
-            }
-        }
-    }
-    total = distance[t];
-    // printf("\n%f\n",total);
-    
-    if(distance[t] != INFINITIVE_VALUE)
-    {
-       
-        while(t!=-11)
-        {
-            temp[dem++] =t;
-            t=previous[t];
-        }
-        for(int i=dem-1;i>=0;i--)
-        {
-            path[dem-i-1] =temp[i];
-
-        }
-        (*length)=dem;
-    }
-
-    return total;
 }
